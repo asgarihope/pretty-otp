@@ -18,7 +18,7 @@ class PrettyOtpServiceProvider extends ServiceProvider
 	public function register()
 	{
 		// Merge the package configuration with the app's published config
-		$this->mergeConfigFrom(__DIR__.'/../config/otp.php', 'otp');
+		$this->mergeConfigFrom(__DIR__.'/../Config/otp.php', 'otp');
 	}
 
 	/**
@@ -37,11 +37,11 @@ class PrettyOtpServiceProvider extends ServiceProvider
 		// Publish configuration and translations if running in console
 		if ($this->app->runningInConsole()) {
 			$this->publishes([
-				__DIR__.'/../config/otp.php' => config_path('otp.php'),
+				__DIR__.'/../Config/otp.php' => config_path('otp.php'),
 			], 'otp-config');
 
 			$this->publishes([
-				__DIR__.'/../resources/lang' => resource_path('lang'),
+				__DIR__.'/../Resources/lang' => resource_path('lang'),
 			], 'otp-translations');
 		}
 
