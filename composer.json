@@ -1,0 +1,34 @@
+{
+    "name": "asgarihope/pretty-otp",
+    "type": "library",
+    "license": "MIT",
+    "version": "1.0.0",
+    "authors": [
+        {
+            "name": "Omid Asgari",
+            "email": "asgarihope@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.2",
+        "illuminate/support": "^6.0|^7.0|^8.0|^9.0|^10.0|^11.0",
+        "illuminate/events": "^6.0|^7.0|^8.0|^9.0|^10.0|^11.0",
+        "laravel/framework": ">=6"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^6.0|^7.0|^8.0|^9.0|^10.0|^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "PrettyOtp\\Laravel\\": "laravel/src/"        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "PrettyOtp\\Laravel\\Providers\\PrettyOtpServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": false
+}
