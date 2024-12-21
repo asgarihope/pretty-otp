@@ -7,7 +7,7 @@ PrettyOtp is a Laravel package designed to simplify the implementation of OTP (O
 Install the package via Composer:
 
 ```bash
-composer require pretty-otp/laravel
+composer require asgarihope/pretty-otp
 ```
 
 ## Configuration
