@@ -1,107 +1,160 @@
-# Pretty OTP
+# PrettyOtp Laravel Package
 
-**Pretty OTP** is a Laravel package for handling OTP (One-Time Password) generation, validation, and access control with robust features like middleware integration, configurable settings, and event-driven notification support.
+PrettyOtp is a Laravel package designed to simplify the implementation of OTP (One-Time Password) mechanisms for authentication and other secure actions.
 
 ## Installation
 
-### 1. Install via Composer
+Install the package via Composer:
+
 ```bash
-composer require asgarihope/pretty-otp
+composer require pretty-otp/laravel
 ```
 
-### 2. Publish Configuration
-Publish the configuration file to customize settings for your application:
+## Configuration
+
+Publish the package configuration file:
+
 ```bash
 php artisan vendor:publish --tag=otp-config
 ```
 
-### 3. Configure OTP Settings
-The `otp.php` configuration file includes:
+This will create a configuration file at `config/otp.php`:
 
 ```php
 return [
-    'otp_expiry'     => 5,  // OTP expiry time in minutes
-    'otp_attempts'   => 5,  // Max OTP attempts
-    'otp_length'     => 6,  // OTP length
-    'otp_retry_time' => 2,  // Retry time in minutes
+    'otp_expiry'     => 5,   // OTP expiry time in minutes
+    'otp_attempts'   => 5,   // Max OTP attempts
+    'otp_length'     => 6,   // OTP length
+    'otp_retry_time' => 2,   // Retry time in minutes
 ];
 ```
 
-## Usage
+## Middleware
 
-### 1. Middleware Integration
-Add the `OtpMiddleware` to your route or controller to protect endpoints:
+The package provides an `OtpMiddleware` to secure routes. You can use it as follows:
+
+### Example Usage
+
+In your `routes/web.php` or `routes/api.php`, apply the middleware:
 
 ```php
-Route::post('/protected-route', function () {
-    return 'Access granted';
-})->middleware('otp:mobile,segment');
+use Illuminate\Support\Facades\Route;
+
+Route::middleware(['otp:key,segment,3'])->group(function () {
+    Route::post('/secure-action', [SecureController::class, 'handle']);
+});
 ```
 
-The middleware parameters:
-- **key**: The request input key for the mobile number (e.g., `mobile`).
-- **segment**: A unique identifier for the OTP usage context (e.g., `login`).
-- **lifetimeInHours** *(optional)*: Duration in hours for which the user has access after OTP validation.
+### Middleware Parameters
+- `key`: The request parameter containing the mobile number.
+- `segment`: A string to identify the OTP usage context.
+- `lifetimeInHours`: (Optional) The duration (in hours) for which access is granted after a successful OTP validation.
 
-### 2. Event and Listener
-**Event**: `PrettyOtp\Laravel\Events\OtpRequested`
+## Events and Listeners
 
-This event is fired when an OTP is requested. You can customize the listener to handle OTP notifications:
+The package dispatches an `OtpRequested` event whenever an OTP is requested. You can listen to this event and define your custom notification logic.
+
+### OtpRequested Event
+
+#### Event Properties:
+- `$mobile`: The mobile number for which the OTP is requested.
+- `$key`: The request parameter key used for the mobile number.
+- `$segment`: The OTP usage context.
+
+#### Example Listener
 
 ```php
-namespace App\Listeners;
-
 use PrettyOtp\Laravel\Events\OtpRequested;
-use PrettyOtp\Laravel\Listeners\SendOtpListener;
 
-class CustomSendOtpListener extends SendOtpListener
+class CustomOtpListener
 {
-    public function sendNotification(string $key, string $inputValue, string $message)
+    public function handle(OtpRequested $event)
     {
-        // Implement SMS or email notification logic here
-        \Log::info("OTP Notification: ", compact('key', 'inputValue', 'message'));
+        $otp = $this->generateOtp($event->mobile, $event->segment);
+        $message = "Your OTP for {$event->segment} is: {$otp}";
+
+        // Send the OTP via SMS or another notification channel
+        $this->sendNotification($event->mobile, $message);
+    }
+
+    private function generateOtp($mobile, $segment)
+    {
+        // Custom OTP generation logic
+    }
+
+    private function sendNotification($mobile, $message)
+    {
+        // Custom notification logic
     }
 }
 ```
 
-Register your custom listener in the `EventServiceProvider`:
+#### Updated Listener Example
+
+The `SendOtpListener` class now includes the `$otp` property and passes it to the `sendNotification` method:
 
 ```php
-protected $listen = [
-    OtpRequested::class => [
-        CustomSendOtpListener::class,
-    ],
-];
+use PrettyOtp\Laravel\Events\OtpRequested;
+use PrettyOtp\Laravel\Services\OtpService;
+
+abstract class SendOtpListener {
+
+    protected $otpService;
+    /**
+     * @var string
+     */
+    protected $otp;
+
+    public function __construct(OtpService $otpService) {
+        $this->otpService = $otpService;
+    }
+
+    public function handle(OtpRequested $event) {
+        $this->otp = $this->otpService->generateOtp($event->mobile, $event->segment);
+
+        $message = "Your OTP for {$event->segment} is: {$this->otp}";
+
+        // Replace this with your SMS/notification logic
+        $this->sendNotification($event->key, $event->mobile, $message);
+    }
+
+    abstract function sendNotification(string $key, string $inputValue, string $message);
+}
 ```
 
-### 3. Services
-Use the `PrettyOtp\Laravel\Services\OtpService` to manage OTPs programmatically:
+## Service Provider
 
-```php
-$otpService = app(\PrettyOtp\Laravel\Services\OtpService::class);
+The `PrettyOtpServiceProvider` automatically registers the middleware and event listeners. It also publishes the configuration and translation files.
 
-// Generate OTP
-$otp = $otpService->generateOtp('1234567890', 'login');
+## Translation
 
-// Validate OTP
-$isValid = $otpService->validateOtp('1234567890', '123456', 'login');
+Publish the translations for customization:
 
-// Grant access after OTP validation
-$otpService->grantAccess('login', '1234567890', 2); // 2 hours access
+```bash
+php artisan vendor:publish --tag=otp-translations
 ```
 
-## Configuration
-### Events
-Customize OTP notifications by listening to the `OtpRequested` event and implementing your notification logic.
+Translations are located under `resources/lang/vendor/pretty-otp/`.
 
-### Middleware
-The middleware enforces OTP validation and rate-limiting, ensuring secure access control.
+## Example Flow
+
+1. **Request OTP**:
+   When the middleware detects a request for an OTP, it dispatches the `OtpRequested` event. This event triggers the configured listener to send the OTP to the user.
+
+2. **Validate OTP**:
+   Subsequent requests to routes protected by the middleware will require a valid OTP. The middleware handles validation and grants access if the OTP is correct.
+
+3. **Access Grant**:
+   Upon successful validation, the middleware grants access to the user for the specified lifetime (`lifetimeInHours`, default is null).
 
 ### Cache Storage
 The package uses Laravel's cache system to store OTPs, attempts, and access grants. Configure your preferred cache driver in `config/cache.php`.
 
-## Contributing
-Pull requests and issues are welcome. For significant changes, please open an issue to discuss your ideas beforehand.
+
+## Contribution
+
+Contributions are welcome! Feel free to submit a pull request or report issues in the repository.
 
 ## License
-This package is open-source and available under the [MIT License](LICENSE).
+
+This package is open-sourced software licensed under the [MIT license](LICENSE).
