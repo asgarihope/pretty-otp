@@ -6,7 +6,7 @@
 
 ### 1. Install via Composer
 ```bash
-composer require pretty-otp/laravel
+composer require asgarihope/pretty-otp
 ```
 
 ### 2. Publish Configuration
